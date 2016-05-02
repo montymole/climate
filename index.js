@@ -72,7 +72,6 @@ var G = {
         });
         get.end();
     },
-
     getReadings() {
         var get = http.request({
             method: "GET",
@@ -86,7 +85,6 @@ var G = {
                     now = new Date().getTime(),
                     key = d[0].split(' ').join(''),
                     value = Number(d[1]);
-
                 if (!G.consoleData[key]) {
                     var c = {
                         Soilmoisture: 'blue',
@@ -107,11 +105,9 @@ var G = {
                     G.consoleData[key].x.push("T" + G.consoleData[key].x.length);
                     G.consoleData[key].y.push(value)
                 }
-
                 G.readingsLog.log(key, '=>', value);
                 G[key + "Line"].setData([G.consoleData[key]]);
                 G.screen.render();
-
                 if (G.readings[key]) {
                     G.readings[key].values.push(value);
                     G.readings[key].sum += value;
@@ -151,7 +147,6 @@ var G = {
             G.screen.render();
             setTimeout(G.getReadings, 1000);
         });
-
         get.end();
     },
     updateWeather() {
@@ -194,7 +189,7 @@ var G = {
     },
     startServer() {
         G.server = http.createServer((req, res) => {
-            var index = fs.readFileSync('index.html', 'UTF8');
+            var index = fs.readFileSync('pub/index.html', 'UTF8');
             switch (req.url) {
             case "/":
                 G.sendHTML(res, 200, index);
