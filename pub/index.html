@@ -9,31 +9,35 @@
       <link href='http://fonts.googleapis.com/css?family=Roboto:400,100,700,300' rel='stylesheet' type='text/css'>
       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
-      <script id="weatherTpl" type="text/x-handlebars-template">
-          <h1>{{title}}</h1>
+      <script id="weatherNow" type="text/x-handlebars-template">
+          <h2>{{#each weather}}​{{main}} : {{description}} <img src="http://openweathermap.org/img/w/{{icon}}.png" align="middle"/>{{/each}}</h2>
+          <table>
+              <tbody>
+                <tr><th>Temperature</th><th>Humidity</th><th>Pressure</th><th>Wind</th><th><i class="fa fa-cloud"></th></tr>
+                <tr><td>{{main.temp}} <small>Celsius</small></td><td>{{main.humidity}}%</td><td>{{main.pressure}} <small>hPa</small></td><td>{{wind.speed}} <small>mps</small> / {{wind.deg}} <small>deg</small></td><td>{{clouds.all}}</td></tr>
+              </tbody>
+          </table>
       </script>
       <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
       <script type="text/javascript">
           var options = {
-              curveType: 'function',
               hAxis: {
-                  gridlines: { count:0},
                   textStyle: { color: '#080', fontName: 'Roboto', fontSize: '12', bold: true}
               },
               vAxis: {
-                  minValue: 0,
-                  gridlines: {color:'#062', count:4},
-                  baselineColor: 'transparent'
+                  minValue: -10,
+                  textStyle: { color: '#080', fontName: 'Roboto', fontSize: '12', bold: true},
+                  gridlines: {color:'#062', count: 10 }
               },
-              legend: {position: 'top', alignment: 'center', textStyle: {color:'#0a0', fontName: 'Roboto', fontSize: '16'} },
+              legend: {position: 'top', alignment: 'center', textStyle: {color:'#0a0', fontName: 'Roboto', fontSize: '12'} },
               colors: ["#864","#f80","#00b","#a00","#ff0","#a80","#08b","#000"],
               areaOpacity: 0.24,
               lineWidth: 2,
               backgroundColor: 'transparent',
               chartArea: {
                   backgroundColor: "transparent",
-                  width: '100%',
-                  height: '80%'
+                  width: '90%',
+                  height: '90%'
               },
               pieSliceBorderColor: '#263238',
               pieSliceTextStyle:  {color:'#607d8b' },
@@ -43,8 +47,8 @@
               backgroundColor: 'transparent',
               datalessRegionColor: '#37474f',
               displayMode: 'regions'
-          };
-          function ajax(url, callback){
+          },
+          ajax = (url, callback) => {
               var xmlhttp;
               // compatible with IE7+, Firefox, Chrome, Opera, Safari
               xmlhttp = new XMLHttpRequest();
@@ -55,49 +59,72 @@
               }
               xmlhttp.open("GET", url, true);
               xmlhttp.send();
-          }
-          function drawChart() {
+          },
+          drawChart = () => {
             ajax('/data', data => {
               if (data.table.length >= 2) {
                 var dataTable = google.visualization.arrayToDataTable(data.table),
-                chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                chart = new google.visualization.LineChart(gEl('chart'));
                 chart.draw(dataTable, options);
               } else {
-                curve_chart.innerHTML = "<h1>Waiting for data...</h1>"
+                gEl('chart').innerHTML = '<h1><i class="fa fa-circle-o-notch fa-spin"></i> Waiting for data...</h1>';
               }
-              console.log(data.weather);
-              gEl("weather").innerHTML = tpl.weatherTpl(data.weather);
+              console.log(data.weatherNow);
+              gEl("weather").innerHTML = tpl.weatherNow(data.weatherNow);
               setTimeout(drawChart, 10000);
             });
-          }
-          function gEl(id) {
+          },
+          gEl = (id) => {
               return document.getElementById(id);
-          }
-          var tpl = {};
-          function getTpl(id) {
+          },
+          tpl = {},
+          getTpl = id => {
               var el = gEl(id);
               tpl[id] = Handlebars.compile(el.innerHTML);
               el.parentNode.removeChild(el);
-          }
+          };
           google.charts.load('current', {'packages':['corechart']});
           google.charts.setOnLoadCallback(drawChart);
-          getTpl("weatherTpl");
+          getTpl("weatherNow");
     </script>
     <style>
         h1 {
-            color:#0f0;
             margin-top:25%;
             font-size:24px;
             display:block;
             text-align:center;
         }
+        h2 {
+            margin:0;
+            font-size:16px;
+            line-height:32px;
+            position:relative;
+        }
+        h2 img {
+            position:absolute;
+            right:12px;
+            top:-8px;
+        }
+        small {
+            font-size:8px;
+        }
         html {
-            font-family: sans-serif; /* 1 */
-            -ms-text-size-adjust: 100%; /* 2 */
-            -webkit-text-size-adjust: 100%; /* 2 */
+            font-family: sans-serif;
+            -ms-text-size-adjust: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        td,th {
+            font-size:14px;
+            padding:4px;
+            border:solid 1px #006622;
+            text-align: center;
         }
         body {
             margin:0;
+            padding:0;
             background: #031;
             color: #607d8b;
             font-size: 1.1em;
@@ -105,21 +132,30 @@
             font-family: "Roboto";
             font-weight: 100;
         }
-        #curve_chart
+        #chart
         {
+            position:absolute;
+            top:0;
+            left:0;
+            right:0;
+            bottom:10%;
             margin:auto;
-            width:90%;
-            height:800px;
+            overflow:hidden;
         }
         #weather {
+            position:absolute;
+            bottom: 0;
+            left: 0;
+            padding:12px;
             font-family:'Roboto';
             color:#00ff00;
+            background-color:rgba(0,0,0,0.5);
 
         }
     </style>
   </head>
   <body>
-    <div id="curve_chart"><h1>Processing...</h1></div>
+    <div id="chart"><h1><i class="fa fa-circle-o-notch fa-spin"></i></h1></div>
     <div id="weather"></div>
   </body>
 </html>

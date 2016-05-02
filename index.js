@@ -122,7 +122,7 @@ var G = {
                 }
                 if (now - G.readings.time > G.readingInterval && G.readings.numKeys >= 5) {
                     G.data.table.push([
-                        moment(now).format('DD.MM. HH.mm'),
+                        moment(now).format('DD.MM. HH:mm'),
                         G.soilMoisture,
                         G.temperature,
                         G.humidity,
@@ -152,24 +152,39 @@ var G = {
     updateWeather() {
         G.getWeather(w => {
             if (w) {
-                G.data.weatherNow = w;
-                G.readingsLog.log(w);
-                //show in text UI
-                var now = moment(),
-                    table = [
-                        [w.base, w.sys.country, now.format('DD.MM.YYYY'), now.format('HH:mm:ss')],
-                        ["Sea level", "Ground level", "Location", "Longitude / Latitude"],
-                        [w.main.sea_level.toString(), w.main.grnd_level.toString(), config.OPEN_WEATHER_LOCATION, w.coord.lon + ' / ' + w.coord.lat],
-                        ["Wind", "Humidity", "Pressure", "Temperature"],
-                        [w.wind.deg + " / " + w.wind.speed, w.main.humidity.toString(), w.main.pressure.toString(), w.main.temp.toString()]
-                    ];
-                w.weather.forEach(d => {
-                    table.push([d.main, d.description]);
+	            G.data.weatherNow = w;
+	            G.readingsLog.log(w);
+	            //show in text UI
+	            var now = moment(),
+		            table = [
+			            [w.base, w.sys.country, now.format('DD.MM.YYYY'), now.format('HH:mm:ss')],
+			            //    ["Sea level", "Ground level", "Location", "Longitude / Latitude"],
+			            //[w.main.sea_level.toString(), w.main.grnd_level.toString(), config.OPEN_WEATHER_LOCATION, w.coord.lon + ' / ' + w.coord.lat],
+			            ["Wind", "Humidity", "Pressure", "Temperature"],
+			            [w.wind.deg + " / " + w.wind.speed, w.main.humidity.toString(), w.main.pressure.toString(), w.main.temp.toString()]
+		            ];
+	            w.weather.forEach(d => {
+		            table.unshift([d.main, d.description]);
                 });
-                G.weatherTable.setData(table);
-                G.screen.render();
+	            G.weatherTable.setData(table);
+	            var fd = __dirname + '/ansi/' + w.weather[0].icon;
+	            fs.exists(fd, exists => {
+		            if (!exists) {
+		              fs.writeFileSync(fd, blessed.ansiimage.curl('http://openweathermap.org/img/w/' + w.weather[0].icon + '.png'));
+	                }
+		            G.weatherIcon = blessed.image({
+			            parent: G.screen,
+			            left: '0%',
+			            top: '0%',
+			            width: '50%',
+			            height: '50%',
+			            type: 'ansi',
+			            file: fd
+		            });
+		            G.screen.render();
+	            });
             }
-            if (G.weatherTimeout) clearTimeout(G.weatherTimeout);
+	        if (G.weatherTimeout) clearTimeout(G.weatherTimeout);
             G.weatherTimeout = setTimeout(G.updateWeather, G.weatherInterval);
         });
     },
@@ -211,12 +226,12 @@ var G = {
         });
         G.weatherTable = blessed.table({
             parent: G.screen,
-            top: '1%',
-            left: '1%',
+            top: '40%',
+            left: '0%',
             data: null,
             border: 'line',
             align: 'center',
-            width: '48%',
+            width: '50%',
             style: {
                 border: {
                     fg: 'blue'
@@ -231,10 +246,10 @@ var G = {
         });
         G.readingsLog = blessed.log({
             parent: G.screen,
-            top: '50%',
-            left: '1%',
-            width: '49%',
-            height: '48%',
+            top: '70%',
+            left: '0%',
+            width: '50%',
+            height: '30%',
             border: 'line',
             tags: true,
             keys: true,
