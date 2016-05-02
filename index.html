@@ -1,0 +1,125 @@
+<!doctype html>
+<html class="no-js" lang="">
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      <title>Greenhouse Climate</title>
+      <meta name="description" content="greenhouse climate measurements">
+      <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+      <link href='http://fonts.googleapis.com/css?family=Roboto:400,100,700,300' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.5/handlebars.min.js"></script>
+      <script id="weatherTpl" type="text/x-handlebars-template">
+          <h1>{{title}}</h1>
+      </script>
+      <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+      <script type="text/javascript">
+          var options = {
+              curveType: 'function',
+              hAxis: {
+                  gridlines: { count:0},
+                  textStyle: { color: '#080', fontName: 'Roboto', fontSize: '12', bold: true}
+              },
+              vAxis: {
+                  minValue: 0,
+                  gridlines: {color:'#062', count:4},
+                  baselineColor: 'transparent'
+              },
+              legend: {position: 'top', alignment: 'center', textStyle: {color:'#0a0', fontName: 'Roboto', fontSize: '16'} },
+              colors: ["#864","#f80","#00b","#a00","#ff0","#a80","#08b","#000"],
+              areaOpacity: 0.24,
+              lineWidth: 2,
+              backgroundColor: 'transparent',
+              chartArea: {
+                  backgroundColor: "transparent",
+                  width: '100%',
+                  height: '80%'
+              },
+              pieSliceBorderColor: '#263238',
+              pieSliceTextStyle:  {color:'#607d8b' },
+              pieHole: 0.9,
+              bar: {groupWidth: "40" },
+              colorAxis: {colors: ["#3f51b5","#2196f3","#03a9f4","#00bcd4"] },
+              backgroundColor: 'transparent',
+              datalessRegionColor: '#37474f',
+              displayMode: 'regions'
+          };
+          function ajax(url, callback){
+              var xmlhttp;
+              // compatible with IE7+, Firefox, Chrome, Opera, Safari
+              xmlhttp = new XMLHttpRequest();
+              xmlhttp.onreadystatechange = function(){
+                  if (xmlhttp.readyState == 4 && xmlhttp.status == 200){
+                      callback(JSON.parse(xmlhttp.responseText));
+                  }
+              }
+              xmlhttp.open("GET", url, true);
+              xmlhttp.send();
+          }
+          function drawChart() {
+            ajax('/data', data => {
+              if (data.table.length >= 2) {
+                var dataTable = google.visualization.arrayToDataTable(data.table),
+                chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                chart.draw(dataTable, options);
+              } else {
+                curve_chart.innerHTML = "<h1>Waiting for data...</h1>"
+              }
+              console.log(data.weather);
+              gEl("weather").innerHTML = tpl.weatherTpl(data.weather);
+              setTimeout(drawChart, 10000);
+            });
+          }
+          function gEl(id) {
+              return document.getElementById(id);
+          }
+          var tpl = {};
+          function getTpl(id) {
+              var el = gEl(id);
+              tpl[id] = Handlebars.compile(el.innerHTML);
+              el.parentNode.removeChild(el);
+          }
+          google.charts.load('current', {'packages':['corechart']});
+          google.charts.setOnLoadCallback(drawChart);
+          getTpl("weatherTpl");
+    </script>
+    <style>
+        h1 {
+            color:#0f0;
+            margin-top:25%;
+            font-size:24px;
+            display:block;
+            text-align:center;
+        }
+        html {
+            font-family: sans-serif; /* 1 */
+            -ms-text-size-adjust: 100%; /* 2 */
+            -webkit-text-size-adjust: 100%; /* 2 */
+        }
+        body {
+            margin:0;
+            background: #031;
+            color: #607d8b;
+            font-size: 1.1em;
+            line-height: 1.4;
+            font-family: "Roboto";
+            font-weight: 100;
+        }
+        #curve_chart
+        {
+            margin:auto;
+            width:90%;
+            height:800px;
+        }
+        #weather {
+            font-family:'Roboto';
+            color:#00ff00;
+
+        }
+    </style>
+  </head>
+  <body>
+    <div id="curve_chart"><h1>Processing...</h1></div>
+    <div id="weather"></div>
+  </body>
+</html>
