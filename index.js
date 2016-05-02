@@ -1,5 +1,5 @@
-
-var http = require('http'),
+var config = require('./environment.json'),
+    http = require('http'),
     fs = require('fs'),
     moment = require('moment'),
     blessed = require('blessed'),
@@ -59,7 +59,7 @@ var G = {
         var get = http.request({
             method: "GET",
             host: "api.openweathermap.org",
-            path: "/data/2.5/weather?q=" + OPEN_WEATHER_LOCATION + "&units=metric&appid=" + OPEN_WEATHER_APPID
+            path: "/data/2.5/weather?q=" + config.OPEN_WEATHER_LOCATION + "&units=metric&appid=" + config.OPEN_WEATHER_APPID
         }, res => {
             var dataStr = "";
             res.setEncoding('utf-8');
@@ -76,8 +76,8 @@ var G = {
     getReadings() {
         var get = http.request({
             method: "GET",
-            host: ARDUINO_HOST,
-            port: ARDUINO_HOST_PORT,
+            host: config.ARDUINO_HOST,
+            port: config.ARDUINO_HOST_PORT,
             path: "/"
         }, res => {
             res.setEncoding('utf-8');
@@ -164,7 +164,7 @@ var G = {
                     table = [
                         [w.base, w.sys.country, now.format('DD.MM.YYYY'), now.format('HH:mm:ss')],
                         ["Sea level", "Ground level", "Location", "Longitude / Latitude"],
-                        [w.main.sea_level.toString(), w.main.grnd_level.toString(), OPEN_WEATHER_LOCATION, w.coord.lon + ' / ' + w.coord.lat],
+                        [w.main.sea_level.toString(), w.main.grnd_level.toString(), config.OPEN_WEATHER_LOCATION, w.coord.lon + ' / ' + w.coord.lat],
                         ["Wind", "Humidity", "Pressure", "Temperature"],
                         [w.wind.deg + " / " + w.wind.speed, w.main.humidity.toString(), w.main.pressure.toString(), w.main.temp.toString()]
                     ];
@@ -206,9 +206,8 @@ var G = {
                 break;
             }
         });
-        G.server.listen(PORT);
+        G.server.listen(config.PORT);
     },
-
     startUI() {
         G.screen.title = "Greenhouse climate";
         G.screen.key('q', () => {
