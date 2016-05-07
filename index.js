@@ -1,9 +1,27 @@
 var config = require('./environment.json'),
     http = require('http'),
-    fs = require('fs'),
-    moment = require('moment'),
-    blessed = require('blessed'),
-    contrib = require('blessed-contrib');
+    url = require('url'),
+	fs = require('fs'),
+    db = require('./db'),
+	ui = require('./ui'),
+    moment = require('moment');
+
+
+function sendJSON(res, code, object) {
+	res.writeHead(code, {
+		"Content-Type": "application/json"
+	});
+	res.write(JSON.stringify(object));
+	res.end();
+}
+
+function sendHTML(res, code, content) {
+	res.writeHead(code, {
+		"Content-Type": "text/html"
+	});
+	res.write(content);
+	res.end();
+}
 
 var G = {
     weatherTimeout: null,
@@ -19,42 +37,30 @@ var G = {
         weatherNow: null
     },
     consoleData: {},
-    screen: blessed.screen({
-        smartCSR: true
-    }),
-
     get soilMoisture() {
         return G.readings.Soilmoisture ? G.readings.Soilmoisture.result : null;
     },
-
     get temperature() {
         return G.readings.Temperature ? G.readings.Temperature.result : null;
     },
-
     get humidity() {
         return G.readings.Humidity ? G.readings.Humidity.result : null;
     },
-
     get heatIndex() {
         return G.readings.HeatIndex ? G.readings.HeatIndex.result : null;
     },
-
     get solarEnergy() {
         return G.readings.SolarEnergy ? G.readings.SolarEnergy.result : null;
     },
-
     get weatherTemp() {
         return G.data.weatherNow ? G.data.weatherNow.main.temp : null;
     },
-
     get weatherHumidity() {
         return G.data.weatherNow ? G.data.weatherNow.main.humidity : null;
     },
-
     get weatherPressure() {
         return G.data.weatherNow ? G.data.weatherNow.main.pressure : null;
     },
-
     getWeather(callback) {
         var get = http.request({
             method: "GET",
@@ -84,7 +90,13 @@ var G = {
                 var d = data.toString("utf8").split('='),
                     now = new Date().getTime(),
                     key = d[0].split(' ').join(''),
-                    value = Number(d[1]);
+                    value = Number(d[1]),
+                    dbReading = new db.Reading({date: now, type: key, value, value});
+                dbReading.save( err => {
+                    if (err) {
+                        console.error('error saving reading');
+                    }
+                });
                 if (!G.consoleData[key]) {
                     var c = {
                         Soilmoisture: 'blue',
@@ -105,9 +117,9 @@ var G = {
                     G.consoleData[key].x.push("T" + G.consoleData[key].x.length);
                     G.consoleData[key].y.push(value)
                 }
-                G.readingsLog.log(key, '=>', value);
-                G[key + "Line"].setData([G.consoleData[key]]);
-                G.screen.render();
+                ui.readingsLog.log(key, '=>', value);
+                ui[key + "Line"].setData([G.consoleData[key]]);
+                ui.screen.render();
                 if (G.readings[key]) {
                     G.readings[key].values.push(value);
                     G.readings[key].sum += value;
@@ -150,166 +162,71 @@ var G = {
         get.end();
     },
     updateWeather() {
-        G.getWeather(w => {
+        G.getWeather((w) => {
             if (w) {
 	            G.data.weatherNow = w;
-	            G.readingsLog.log(w);
+	            ui.readingsLog.log(w);
 	            //show in text UI
 	            var now = moment(),
 		            table = [
 			            [w.base, w.sys.country, now.format('DD.MM.YYYY'), now.format('HH:mm:ss')],
-			            //    ["Sea level", "Ground level", "Location", "Longitude / Latitude"],
-			            //[w.main.sea_level.toString(), w.main.grnd_level.toString(), config.OPEN_WEATHER_LOCATION, w.coord.lon + ' / ' + w.coord.lat],
 			            ["Wind", "Humidity", "Pressure", "Temperature"],
 			            [w.wind.deg + " / " + w.wind.speed, w.main.humidity.toString(), w.main.pressure.toString(), w.main.temp.toString()]
 		            ];
 	            w.weather.forEach(d => {
 		            table.unshift([d.main, d.description]);
                 });
-	            G.weatherTable.setData(table);
-	            var fd = __dirname + '/ansi/' + w.weather[0].icon;
-	            fs.exists(fd, exists => {
-		            if (!exists) {
-		              fs.writeFileSync(fd, blessed.ansiimage.curl('http://openweathermap.org/img/w/' + w.weather[0].icon + '.png'));
-	                }
-		            G.weatherIcon = blessed.image({
-			            parent: G.screen,
-			            left: '0%',
-			            top: '0%',
-			            width: '50%',
-			            height: '50%',
-			            type: 'ansi',
-			            file: fd
-		            });
-		            G.screen.render();
-	            });
+	            ui.weatherTable.setData(table);
+	            ui.weatherIcon(__dirname + '/ansi/' + w.weather[0].icon);
             }
 	        if (G.weatherTimeout) clearTimeout(G.weatherTimeout);
             G.weatherTimeout = setTimeout(G.updateWeather, G.weatherInterval);
         });
     },
-    sendJSON(res, code, object) {
-        res.writeHead(code, {
-            "Content-Type": "application/json"
-        });
-        res.write(JSON.stringify(object));
-        res.end();
-    },
-    sendHTML(res, code, content) {
-        res.writeHead(code, {
-            "Content-Type": "text/html"
-        });
-        res.write(content);
-        res.end();
-    },
     startServer() {
         G.server = http.createServer((req, res) => {
-            var index = fs.readFileSync('pub/index.html', 'UTF8');
-            switch (req.url) {
+            var index = fs.readFileSync('pub/index.html', 'UTF8'),
+                url_parts = url.parse(req.url, true);
+            switch (url_parts.pathname) {
             case "/":
-                G.sendHTML(res, 200, index);
+                sendHTML(res, 200, index);
                 break;
             case "/data":
-                G.sendJSON(res, 200, G.data);
+                sendJSON(res, 200, G.data);
                 break;
-            default: G.sendJSON(res, 404, '404 Error ' + req.url + ' not found');
+            case "/find":
+	            var q = {};
+	            if (url_parts.query.startDate) {
+		            q.date = {
+			            $gte : moment(url_parts.query.startDate).toDate()
+		            }
+	            }
+	            if (url_parts.query.endDate) {
+		            if (!q.date) {
+			            q.date = {};
+		            }
+		            q.date.$lt = moment(url_parts.qyery.endDate).toDate();
+	            }
+	            if (url_parts.query.reading) {
+		            q.type = url_parts.query.reading;
+	            }
+	            ui.readingsLog.log('QUERY',q);
+	            db.Reading.find(q, (err, data) => {
+	                if (err) {
+		                sendJSON(res, 500, err);
+	                } else {
+		                sendJSON(res, 200, data);
+	                }
+                });
+                break;
+            default: sendJSON(res, 404, '404 Error ' + req.url + ' not found');
                 break;
             }
         });
         G.server.listen(config.PORT);
     },
-    startUI() {
-        G.screen.title = "Greenhouse climate";
-        G.screen.key('q', () => {
-            G.screen.destroy();
-            process.exit();
-        });
-        G.weatherTable = blessed.table({
-            parent: G.screen,
-            top: '40%',
-            left: '0%',
-            data: null,
-            border: 'line',
-            align: 'center',
-            width: '50%',
-            style: {
-                border: {
-                    fg: 'blue'
-                },
-                header: {
-                    fg: 'white',
-                },
-                cell: {
-                    fg: 'white'
-                }
-            }
-        });
-        G.readingsLog = blessed.log({
-            parent: G.screen,
-            top: '70%',
-            left: '0%',
-            width: '50%',
-            height: '30%',
-            border: 'line',
-            tags: true,
-            keys: true,
-            vi: true,
-            mouse: true,
-            scrollback: 100,
-            scrollbar: {
-                ch: ' ',
-                track: {
-                    bg: 'yellow'
-                },
-                style: {
-                    inverse: true
-                }
-            }
-        });
-        G.SoilmoistureLine = contrib.line({
-            left: '50%',
-            top: '00%',
-            width: '50%',
-            height: '20%',
-            label: 'Soil moisture'
-        });
-        G.screen.append(G.SoilmoistureLine);
-        G.TemperatureLine = contrib.line({
-            left: '50%',
-            top: '20%',
-            width: '50%',
-            height: '20%',
-            label: 'Temperature'
-        });
-        G.screen.append(G.TemperatureLine);
-        G.SolarEnergyLine = contrib.line({
-            left: '50%',
-            top: '40%',
-            width: '50%',
-            height: '20%',
-            label: 'Solar Energy'
-        });
-        G.screen.append(G.SolarEnergyLine);
-        G.HumidityLine = contrib.line({
-            left: '50%',
-            top: '60%',
-            width: '50%',
-            height: '20%',
-            label: 'Humidity'
-        });
-        G.screen.append(G.HumidityLine);
-        G.HeatIndexLine = contrib.line({
-            left: '50%',
-            top: '80%',
-            width: '50%',
-            height: '20%',
-            label: 'Heat Index'
-        });
-        G.screen.append(G.HeatIndexLine);
-        G.screen.render();
-    },
     start() {
-        G.startUI();
+	    ui.init();
         G.updateWeather();
         G.getReadings();
         G.startServer();
