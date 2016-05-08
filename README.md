@@ -1,5 +1,5 @@
 # WIP!
-This is a personal project to monitor and control my greenhouse.
+This is a personal project to monitor and control a greenhouse.
 Use with own risk.
 
 My current setup is following: 
@@ -12,6 +12,8 @@ also raspberry is possible!
     - ARDUINO_HOST         ip of PC connected to Arduino
     - ARDUINO_HOST_PORT    http port of USBtoHTTP
     - PORT     http server port
+    - DATABASE mongodb://localhost/climate
+       
 
 ## TODO
 schemas and partlists for Arduino #1 and #2
@@ -47,15 +49,3 @@ not saved.
     - relay 12V to cooling fan
     - relay 220V (for heating and water pump)
 
-
-016-03-07	 	2016-03-06	 	PAYPAL *LI JUN	 	-65,16	 	65 098,02
-2016-03-07	 	2016-03-06	 	PAYPAL *ZHANG	 	-43,65	 	65 163,18
-2016-03-07	 	2016-03-06	 	PAYPAL *SCDZCY	 	-56,48	 	65 206,83
-2016-03-07	 	2016-03-06	 	PAYPAL *PENGJI	 	-70,32	 	65 263,31
-2016-03-07	 	2016-03-06	 	PAYPAL *BUYINC	 	-41,77	 	65 333,63
-2016-03-07	 	2016-03-06	 	PAYPAL *SUNXIA	 	-24,91	 
-
-
-496,00 * BAHNHOF
-525,00 * KUITU
--88,00	 	TELIA
