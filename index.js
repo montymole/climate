@@ -5,8 +5,6 @@ var config = require('./environment.json'),
     db = require('./db'),
 	ui = require('./ui'),
     moment = require('moment');
-
-
 function sendJSON(res, code, object) {
 	res.writeHead(code, {
 		"Content-Type": "application/json"
@@ -22,7 +20,6 @@ function sendHTML(res, code, content) {
 	res.write(content);
 	res.end();
 }
-
 var G = {
     weatherTimeout: null,
     weatherInterval: 60 * 10000,
@@ -73,7 +70,14 @@ var G = {
                 dataStr += data;
             });
             res.on('end', () => {
-                callback(JSON.parse(dataStr));
+	            var data = JSON.parse(dataStr),
+	                dbWeather = new db.Weather(data);
+	            dbWeather.save( err => {
+		            if (err) {
+			            console.error('error saving weather');
+		            }
+	            })
+                callback(data);
             });
         });
         get.end();
@@ -176,6 +180,25 @@ var G = {
             G.weatherTimeout = setTimeout(G.updateWeather, G.weatherInterval);
         });
     },
+	createDbQuery(query) {
+		var q = {};
+        if (query.startDate) {
+            q.date = {
+	            $gte : moment(query.startDate).toDate()
+            }
+        }
+        if (query.endDate) {
+            if (!q.date) {
+	            q.date = {};
+            }
+            q.date.$lt = moment(qyery.endDate).toDate();
+        }
+        if (query.reading) {
+            q.type = url_parts.query.reading;
+        }
+        ui.readingsLog.log('DB QUERY',q);
+		return q;
+	},
     startServer() {
         G.server = http.createServer((req, res) => {
             var index = fs.readFileSync('pub/index.html', 'UTF8'),
@@ -184,34 +207,27 @@ var G = {
             case "/":
                 sendHTML(res, 200, index);
                 break;
-            case "/data":
+            case "/api/data":
                 sendJSON(res, 200, G.data);
                 break;
-            case "/find":
-	            var q = {};
-	            if (url_parts.query.startDate) {
-		            q.date = {
-			            $gte : moment(url_parts.query.startDate).toDate()
-		            }
-	            }
-	            if (url_parts.query.endDate) {
-		            if (!q.date) {
-			            q.date = {};
-		            }
-		            q.date.$lt = moment(url_parts.qyery.endDate).toDate();
-	            }
-	            if (url_parts.query.reading) {
-		            q.type = url_parts.query.reading;
-	            }
-	            ui.readingsLog.log('QUERY',q);
-	            db.Reading.find(q, (err, data) => {
+            case "/api/reading":
+	            db.Reading.find(G.createDbQuery(url_parts.query), (err, data) => {
 	                if (err) {
 		                sendJSON(res, 500, err);
 	                } else {
 		                sendJSON(res, 200, data);
-	                }
+                    }
                 });
                 break;
+	        case "/api/weather":
+		        db.Weather.find(G.createDbQuery(url_parts.query), (err,data) => {
+			        if (err) {
+				        sendJSON(res, 500, err);
+			        } else {
+				        sendJSON(res, 200, data);
+			        }
+		        });
+		        break;
             default: sendJSON(res, 404, '404 Error ' + req.url + ' not found');
                 break;
             }
@@ -225,6 +241,5 @@ var G = {
         G.startServer();
     }
 }
-
 G.start();
 

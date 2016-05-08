@@ -63,7 +63,7 @@
           drawChartTimeout = null,
           drawChart = () => {
             var now = new Date();
-            ajax('/data', data => {
+            ajax('/api/data', data => {
               if (data.table.length >= 2) {
                 var dataTable = google.visualization.arrayToDataTable(data.table),
                 chart = new google.visualization.LineChart(gEl('chart'));
