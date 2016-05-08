@@ -5,7 +5,7 @@ var blessed = require('blessed'),
 
 module.exports = ui = {
 
-	colors: {
+	graphColors: {
 		Soilmoisture: 'blue',
 		Temperature: 'red',
 		SolarEnergy: 'yellow',
@@ -17,7 +17,7 @@ module.exports = ui = {
 		smartCSR: true
 	}),
 	
-	weatherIcon(fd) {
+	getWeatherIcon(fd) {
 		fs.exists(fd, exists => {
 				if (!exists) {
 				fs.writeFileSync(fd, blessed.ansiimage.curl('http://openweathermap.org/img/w/' + w.weather[0].icon + '.png'));

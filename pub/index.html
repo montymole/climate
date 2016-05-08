@@ -60,6 +60,7 @@
               xmlhttp.open("GET", url, true);
               xmlhttp.send();
           },
+          drawChartTimeout: null,
           drawChart = () => {
             var now = new Date();
             ajax('/data', data => {
@@ -71,9 +72,8 @@
                 gEl('chart').innerHTML = '<h1><i class="fa fa-circle-o-notch fa-spin"></i> Waiting for data...</h1>';
               }
               gEl("weather").innerHTML = tpl.weatherNow(data.weatherNow);
-              setTimeout(drawChart, 10000);
+              drawChartTimeout = setTimeout(drawChart, 10000);
             });
-            gEl("webcam").src = "/img/webcam.jpg?"+now.getTime();
           },
           gEl = (id) => {
               return document.getElementById(id);
@@ -152,16 +152,10 @@
             color:#00ff00;
             background-color:rgba(0,0,0,0.5);
         }
-        #webcam {
-            position:absolute;
-            bottom:0;
-            right:0;
-        }
     </style>
   </head>
   <body>
     <div id="chart"><h1><i class="fa fa-circle-o-notch fa-spin"></i></h1></div>
     <div id="weather"></div>
-    <img id="webcam" src="/img/webcam.jpg" width="320"/>
   </body>
 </html>

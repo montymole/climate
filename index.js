@@ -98,24 +98,17 @@ var G = {
                     }
                 });
                 if (!G.consoleData[key]) {
-                    var c = {
-                        Soilmoisture: 'blue',
-                        Temperature: 'red',
-                        SolarEnergy: 'yellow',
-                        Humidity: 'blue',
-                        HeatIndex: 'red'
-                    };
                     G.consoleData[key] = {
                         label: key,
                         x: [],
                         y: [],
                         style: {
-                            line: c[key]
+                            line: ui.graphColors[key]
                         }
                     };
                 } else {
                     G.consoleData[key].x.push("T" + G.consoleData[key].x.length);
-                    G.consoleData[key].y.push(value)
+                    G.consoleData[key].y.push(value);
                 }
                 ui.readingsLog.log(key, '=>', value);
                 ui[key + "Line"].setData([G.consoleData[key]]);
@@ -177,7 +170,7 @@ var G = {
 		            table.unshift([d.main, d.description]);
                 });
 	            ui.weatherTable.setData(table);
-	            ui.weatherIcon(__dirname + '/ansi/' + w.weather[0].icon);
+	            ui.getWeatherIcon(__dirname + '/ansi/' + w.weather[0].icon);
             }
 	        if (G.weatherTimeout) clearTimeout(G.weatherTimeout);
             G.weatherTimeout = setTimeout(G.updateWeather, G.weatherInterval);
