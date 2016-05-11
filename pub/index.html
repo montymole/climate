@@ -18,6 +18,12 @@
               </tbody>
           </table>
       </script>
+      <script id="controlButtons" type="text/x-handlebars-template">
+          <button data-cmd="psu" data-value={{PSU.toggle}} class="btn{{PSU.status}}">{{PSU.alias}}</button>
+          <button data-cmd="led" data-value={{LED.toggle}} class="btn{{LED.status}}">{{LED.alias}}</button>
+          <button data-cmd="relay3" data-value={{RELAY3.toggle}} class="btn{{RELAY3.status}}">{{RELAY3.alias}}</button>
+          <button data-cmd="relay4" data-value={{RELAY4.toggle}} class="btn{{RELAY4.status}}">{{RELAY4.alias}}</button>
+      </script>
       <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
       <script type="text/javascript">
           var options = {
@@ -87,6 +93,23 @@
           google.charts.load('current', {'packages':['corechart']});
           google.charts.setOnLoadCallback(drawChart);
           getTpl("weatherNow");
+          getTpl("controlButtons");
+          window.onload = () => {
+            document.body.addEventListener("click", (e) => {
+              if (e.target.dataset && e.target.dataset.cmd && e.target.dataset.value) {
+                ajax('/api/cmd?'+e.target.dataset.cmd+'='+e.target.dataset.value, res => {
+                  setTimeout(() => {
+                    ajax('/api/controls', controls => {
+                      gEl("controls").innerHTML = tpl.controlButtons(controls);
+                    });
+                  }, 1000);
+                });
+              }
+            }, false);
+            ajax('/api/controls', controls => {
+              gEl("controls").innerHTML = tpl.controlButtons(controls);
+            });
+          }
     </script>
     <style>
         h1 {
@@ -152,10 +175,32 @@
             color:#00ff00;
             background-color:rgba(0,0,0,0.5);
         }
+        #controls {
+            position:absolute;
+            bottom:0;
+            right:0;
+            padding:12px;
+            font-family:'Roboto';
+            color:#00ff00;
+            background-color:rgba(0,0,0,0.5);
+        }
+        button {
+          padding: 12px;
+          border:none;
+        }
+        .btn0 {
+          color:#000;
+          background-color:#666;
+        }
+        .btn1 {
+          color:#080;
+          background-color:#afa;
+        }
     </style>
   </head>
   <body>
     <div id="chart"><h1><i class="fa fa-circle-o-notch fa-spin"></i></h1></div>
     <div id="weather"></div>
+    <div id="controls"></div>
   </body>
 </html>

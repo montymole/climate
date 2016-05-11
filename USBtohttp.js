@@ -4,7 +4,6 @@ var SerialPort = require("serialport").SerialPort,
         baudrate: 9600
     }),
     http = require('http');
-
 port.on('open', () => {
     console.log('Serial Port ->');
     var server = http.createServer((req, res) => {
