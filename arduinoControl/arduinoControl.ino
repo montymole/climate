@@ -4,8 +4,8 @@
 #include <string.h>
 
 #define PS_ON 2
-#define R1 4 //broken
-#define R2 5  //broken
+#define R1 4
+#define R2 5
 #define R3 6  
 #define R4 7
 #define LED 13
